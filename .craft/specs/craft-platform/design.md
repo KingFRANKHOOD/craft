@@ -2,7 +2,7 @@
 
 ## Overview
 
-CRAFT is a no-code platform that enables users to deploy customized DeFi applications on the Stellar blockchain. The platform architecture follows a modern full-stack approach using Next.js for both frontend and backend, Supabase for authentication and data persistence, and automated deployment pipelines through GitHub and Vercel APIs.
+CRAFT is a no-code platform that enables users to deploy customized DeFi applications on the Stellar blockchain. The platform architecture follows a modern full-stack approach using Next.js for both frontend and backend, Supabase for authentication and data persistence, and automated deployments pipelines through GitHub and Vercel APIs.
 
 The system is designed with three core pillars:
 
