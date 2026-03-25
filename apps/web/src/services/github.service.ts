@@ -21,6 +21,18 @@ import type { GitHubRepoCreateOptions, GitHubRepoResult } from '@craft/types';
 const GITHUB_API_BASE = 'https://api.github.com';
 const DEFAULT_MAX_RETRIES = 5;
 
+interface GitHubCreateRepoResponse {
+    id: number;
+    node_id: string;
+    name: string;
+    full_name: string;
+    html_url: string;
+    clone_url: string;
+    ssh_url: string;
+    default_branch: string;
+    private: boolean;
+}
+
 // ── Custom error types ────────────────────────────────────────────────────────
 
 /**
@@ -119,8 +131,7 @@ export class GitHubService {
             });
 
             if (response.ok) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const payload: any = await response.json();
+                const payload = (await response.json()) as GitHubCreateRepoResponse;
                 return {
                     id: payload.id,
                     nodeId: payload.node_id,

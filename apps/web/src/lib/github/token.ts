@@ -14,7 +14,13 @@
  *     node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
  */
 
-import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
+import {
+    createCipheriv,
+    createDecipheriv,
+    createSecretKey,
+    randomBytes,
+    type KeyObject,
+} from 'crypto';
 
 const ALGORITHM = 'aes-256-gcm';
 /** AES-256 requires a 32-byte key. */
@@ -22,18 +28,43 @@ const KEY_BYTES = 32;
 /** GCM standard recommends a 96-bit (12-byte) IV. */
 const IV_BYTES = 12;
 
-function getKey(): Buffer {
+function fromHex(value: string): Uint8Array {
+    return Uint8Array.from(Buffer.from(value, 'hex'));
+}
+
+function toHex(value: Uint8Array): string {
+    return Buffer.from(value).toString('hex');
+}
+
+function concatBytes(...chunks: Uint8Array[]): Uint8Array {
+    const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+    const result = new Uint8Array(totalLength);
+    let offset = 0;
+
+    for (const chunk of chunks) {
+        result.set(chunk, offset);
+        offset += chunk.length;
+    }
+
+    return result;
+}
+
+function toUtf8(value: Uint8Array): string {
+    return Buffer.from(value).toString('utf8');
+}
+
+function getKey(): KeyObject {
     const keyHex = process.env.GITHUB_TOKEN_ENCRYPTION_KEY;
     if (!keyHex) {
         throw new Error('GITHUB_TOKEN_ENCRYPTION_KEY environment variable is not set');
     }
-    const key = Buffer.from(keyHex, 'hex');
-    if (key.length !== KEY_BYTES) {
+    const keyBytes = fromHex(keyHex);
+    if (keyBytes.length !== KEY_BYTES) {
         throw new Error(
             `GITHUB_TOKEN_ENCRYPTION_KEY must be a ${KEY_BYTES * 2}-character hex string (got ${keyHex.length} chars)`
         );
     }
-    return key;
+    return createSecretKey(keyBytes);
 }
 
 /**
@@ -42,11 +73,14 @@ function getKey(): Buffer {
  */
 export function encryptToken(plaintext: string): string {
     const key = getKey();
-    const iv = randomBytes(IV_BYTES);
+    const iv = Uint8Array.from(randomBytes(IV_BYTES));
     const cipher = createCipheriv(ALGORITHM, key, iv);
-    const ciphertext = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
-    const authTag = cipher.getAuthTag();
-    return `${iv.toString('hex')}:${authTag.toString('hex')}:${ciphertext.toString('hex')}`;
+    const ciphertext = concatBytes(
+        Uint8Array.from(cipher.update(plaintext, 'utf8')),
+        Uint8Array.from(cipher.final())
+    );
+    const authTag = Uint8Array.from(cipher.getAuthTag());
+    return `${toHex(iv)}:${toHex(authTag)}:${toHex(ciphertext)}`;
 }
 
 /**
@@ -60,10 +94,15 @@ export function decryptToken(encrypted: string): string {
     }
     const [ivHex, authTagHex, ciphertextHex] = parts;
     const key = getKey();
-    const iv = Buffer.from(ivHex, 'hex');
-    const authTag = Buffer.from(authTagHex, 'hex');
-    const ciphertext = Buffer.from(ciphertextHex, 'hex');
+    const iv = fromHex(ivHex);
+    const authTag = fromHex(authTagHex);
+    const ciphertext = fromHex(ciphertextHex);
     const decipher = createDecipheriv(ALGORITHM, key, iv);
     decipher.setAuthTag(authTag);
-    return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');
+    return toUtf8(
+        concatBytes(
+            Uint8Array.from(decipher.update(ciphertext)),
+            Uint8Array.from(decipher.final())
+        )
+    );
 }

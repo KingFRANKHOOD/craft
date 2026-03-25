@@ -10,7 +10,7 @@ import { healthMonitorService } from '@/services/health-monitor.service';
  * {
  *   "crons": [{
  *     "path": "/api/cron/health-check",
- *     "schedule": "*/5 * * * * "
+ *     "schedule": "0/5 * * * *"
     *   }]
  * }
  */
