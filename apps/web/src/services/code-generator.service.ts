@@ -23,6 +23,8 @@ import type {
     StellarConfig,
 } from '@craft/types';
 import type { GeneratedFile, GenerationResult, GenerationRequest } from '@craft/types';
+import { generateBrandingCss, generateBrandingConfigSnippet } from '@/lib/branding/branding-replacer';
+export { generateBrandingCss, generateBrandingConfigSnippet };
 
 // ── Network constants ─────────────────────────────────────────────────────────
 
@@ -59,6 +61,7 @@ export class CodeGeneratorService {
                 this.generateConfigFile(templateFamily, customization),
                 this.generateEnvFile(customization),
                 this.generatePackageJson(templateFamily, customization),
+                this.generateBrandingCssFile(customization),
                 ...this.generateFamilySpecificFiles(templateFamily, customization),
             ];
 
@@ -139,6 +142,16 @@ export default config;
         }
 
         return { path: '.env.local', content: lines.join('\n') + '\n', type: 'config' };
+    }
+
+    // ── Branding CSS file ─────────────────────────────────────────────────────
+
+    generateBrandingCssFile(cfg: CustomizationConfig): GeneratedFile {
+        return {
+            path: 'src/app/branding.css',
+            content: generateBrandingCss(cfg.branding),
+            type: 'config',
+        };
     }
 
     // ── package.json ──────────────────────────────────────────────────────────
